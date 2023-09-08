@@ -3,11 +3,11 @@ plugins {
 }
 
 android {
-    namespace = "com.example.bailador"
+    namespace = "com.machbohu.bailador"
     compileSdk = 33
 
     defaultConfig {
-        applicationId = "com.example.bailador"
+        applicationId = "com.machbohu.bailador"
         minSdk = 24
         targetSdk = 33
         versionCode = 1
