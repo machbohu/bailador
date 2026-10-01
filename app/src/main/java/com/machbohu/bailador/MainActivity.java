@@ -7,19 +7,17 @@ import android.graphics.Color;
 import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Bundle;
-import android.os.Environment;
-import android.os.StrictMode;
 import android.util.Log;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
 
-import com.google.firebase.crashlytics.buildtools.reloc.org.apache.commons.io.IOUtils;
+import androidx.core.content.FileProvider;
 
 import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -31,9 +29,6 @@ public class MainActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
-        StrictMode.VmPolicy.Builder builder = new StrictMode.VmPolicy.Builder();
-        StrictMode.setVmPolicy(builder.build());
 
         setContentView(R.layout.audio_list_layout);
 
@@ -70,39 +65,21 @@ public class MainActivity extends Activity {
         });
 
         audioItemsListView.setOnItemLongClickListener((parent, view, position, id) -> {
-            InputStream audioInputStream;
+            File sharedAudioFile = new File(getCacheDir(), "bailador-je-tanecnik.mp3");
 
-            try {
-                audioInputStream = getAssets().open("audio_files/" + listOfAudioFileNames.get(position));
+            try (InputStream audioInputStream = getAssets().open("audio_files/" + listOfAudioFileNames.get(position))) {
+                Files.copy(audioInputStream, sharedAudioFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
 
-            String downloadOrder = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).toString();
-
-            File tempFile = new File(downloadOrder+"/"+"bailador-je-tanecnik.mp3");
-            tempFile.deleteOnExit();
-            FileOutputStream out;
-
-            try {
-                out = new FileOutputStream(tempFile);
-            } catch (FileNotFoundException e) {
-                throw new RuntimeException(e);
-            }
-
-            try {
-                IOUtils.copy(audioInputStream, out);
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-
-            Uri audioFileUri = Uri.fromFile(tempFile);
+            Uri audioFileUri = FileProvider.getUriForFile(this, getPackageName() + ".fileprovider", sharedAudioFile);
 
             Intent sendIntent = new Intent();
             sendIntent.setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
             sendIntent.setAction(Intent.ACTION_SEND);
             sendIntent.putExtra(Intent.EXTRA_STREAM, audioFileUri);
-            sendIntent.setType("audio/mp3");
+            sendIntent.setType("audio/mpeg");
 
             Intent shareIntent = Intent.createChooser(sendIntent, null);
             startActivity(shareIntent);
